@@ -227,6 +227,9 @@ enum {
 	JMP_SESSION_STOP_AND_QUIT = 1,
 	JMP_JUST_QUIT_QUICKLY = 2
 };
+
+#define DEFAULT_SYSTEM_DATA_DIRS "/usr/local/share/:/usr/share/"
+
 #define DEFAULT_LANGUAGE "Default"
 #define SIGNAL_EXIT_WITH_JMP(d,how) \
    {											\
@@ -2886,6 +2889,7 @@ session_child_run (struct passwd *pwent,
 		   gboolean savelang)
 {
 	const char *old_system_data_dirs;
+    GString *data_dirs_string;
 	char *sessionexec = NULL;
 	GString *fullexec = NULL;
 	const char *shell = NULL;
@@ -2953,9 +2957,10 @@ session_child_run (struct passwd *pwent,
 				_("%s: Execution of PreSession script returned > 0. Aborting."),
 				"session_child_run");
 
-	old_system_data_dirs = g_getenv ("XDG_DATA_DIRS") ?
-			       g_getenv ("XDG_DATA_DIRS") :
-			       "/usr/local/share/:/usr/share/";
+    if (g_getenv ("XDG_DATA_DIRS"))
+        data_dirs_string = g_string_new (g_getenv ("XDG_DATA_DIRS"));
+    else
+        data_dirs_string = g_string_new (DEFAULT_SYSTEM_DATA_DIRS);
 
 	ve_clearenv ();
 
@@ -3009,16 +3014,13 @@ session_child_run (struct passwd *pwent,
 	 * variable.  This way, MDM menu choices never appear if
 	 * using a different display manager.
 	 */
-	{
-		char *new_system_data_dirs;
+    // {
+    //     data_dirs_string = g_string_append (data_dirs_string,":" DATADIR "/mdm/");
 
-		new_system_data_dirs = g_build_path (":",
-			 old_system_data_dirs, DATADIR "/mdm/", NULL);
+    //     g_setenv ("XDG_DATA_DIRS", data_dirs_string->str, TRUE);
 
-		g_setenv ("XDG_DATA_DIRS", new_system_data_dirs, TRUE);
-
-		g_free (new_system_data_dirs);
-	}	
+    //     g_string_free (data_dirs_string, TRUE);
+    // }
 
 	/* Now still as root make the system authfile not readable by others,
 	   and therefore not by the mdm user */
